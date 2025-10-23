@@ -18,17 +18,28 @@ export default function VerifierTab({ contractAddress, abi }: Props) {
 
     try {
       setLoading(true);
+      
+      // Validate Ethereum address
+      if (!ethers.isAddress(holderAddress)) {
+        alert('Please enter a valid Ethereum address');
+        return;
+      }
+
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const contract = new ethers.Contract(contractAddress, abi, provider);
 
+      // Read file and calculate hash more safely
       const arrayBuffer = await file.arrayBuffer();
-      const hashBytes = ethers.keccak256(new Uint8Array(arrayBuffer));
+      const uint8Array = new Uint8Array(arrayBuffer);
+      
+      // Use ethers.utils for better compatibility
+      const hashBytes = ethers.keccak256(uint8Array);
 
       const valid = await contract.verify(holderAddress, hashBytes);
       setIsValid(valid);
     } catch (error) {
-      console.error(error);
-      alert('Error verifying credential');
+      console.error('Verification error:', error);
+      alert('Error verifying credential. Please check the console for details.');
       setIsValid(null);
     } finally {
       setLoading(false);
@@ -65,18 +76,20 @@ export default function VerifierTab({ contractAddress, abi }: Props) {
               type="file"
               onChange={(e) => setFile(e.target.files?.[0] || null)}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-purple-50 file:text-purple-700 file:font-semibold hover:file:bg-purple-100 cursor-pointer transition-all"
+              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
             />
           </div>
           {file && (
             <p className="mt-2 text-sm text-gray-600">
-              Selected: <span className="font-semibold">{file.name}</span>
+              Selected: <span className="font-semibold">{file.name}</span> 
+              ({(file.size / 1024 / 1024).toFixed(2)} MB)
             </p>
           )}
         </div>
 
         <button
           onClick={checkValidity}
-          disabled={loading}
+          disabled={loading || !holderAddress || !file}
           className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white font-semibold px-6 py-3 rounded-lg hover:from-purple-600 hover:to-purple-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
         >
           {loading ? (
