@@ -11,22 +11,57 @@ export default function HolderTab({ contractAddress, abi }: Props) {
   const [verifierAddress, setVerifierAddress] = useState('');
   const [consentOn, setConsentOn] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [txHash, setTxHash] = useState<string>('');
 
   const toggleConsent = async () => {
+    if (!verifierAddress) {
+      return alert('Please enter a verifier address');
+    }
+
+    // Validate Ethereum address
+    if (!ethers.isAddress(verifierAddress)) {
+      return alert('Invalid verifier address format');
+    }
+
     try {
       setLoading(true);
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       await provider.send('eth_requestAccounts', []);
       const signer = await provider.getSigner();
-      const contract = new ethers.Contract(contractAddress, abi, signer);
+      
+      // Handle ABI properly - check if it's already an array or needs to be accessed
+      const contractAbi = Array.isArray(abi) ? abi : abi.abi || abi;
+      const contract = new ethers.Contract(contractAddress, contractAbi, signer);
+
+      console.log('Setting consent for verifier:', verifierAddress);
+      console.log('New consent state:', !consentOn);
 
       const tx = await contract.setConsent(verifierAddress, !consentOn);
-      await tx.wait();
+      console.log('Transaction sent:', tx.hash);
+      setTxHash(tx.hash);
+      
+      alert('Transaction sent! Please wait for confirmation...');
+      
+      const receipt = await tx.wait();
+      console.log('Transaction confirmed:', receipt);
+      
       setConsentOn(!consentOn);
-      alert('Consent updated successfully!');
-    } catch (error) {
-      console.error(error);
-      alert('Error updating consent');
+      alert('✅ Consent updated successfully!');
+      
+      // Clear transaction hash after 5 seconds
+      setTimeout(() => setTxHash(''), 5000);
+    } catch (error: any) {
+      console.error('Error details:', error);
+      
+      if (error.code === 'ACTION_REJECTED' || error.code === 4001) {
+        alert('Transaction was rejected by user');
+      } else if (error.code === 'INSUFFICIENT_FUNDS') {
+        alert('Insufficient funds to complete transaction');
+      } else if (error.message?.includes('user rejected')) {
+        alert('Transaction was rejected in MetaMask');
+      } else {
+        alert(`Error updating consent: ${error.reason || error.message || 'Unknown error'}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -90,6 +125,18 @@ export default function HolderTab({ contractAddress, abi }: Props) {
             '🔓 Grant Consent'
           )}
         </button>
+
+        {txHash && (
+          <div className="bg-green-50 border-2 border-green-300 rounded-lg p-4 animate-pulse">
+            <p className="text-sm text-green-800">
+              <span className="font-semibold">✅ Transaction Sent!</span>
+              <br />
+              <span className="text-xs font-mono break-all">
+                Hash: {txHash}
+              </span>
+            </p>
+          </div>
+        )}
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <p className="text-sm text-blue-800">
