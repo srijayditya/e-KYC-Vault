@@ -28,12 +28,13 @@ export default function VerifierTab({ contractAddress, abi }: Props) {
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const contract = new ethers.Contract(contractAddress, abi, provider);
 
-      // Read file and calculate hash more safely
+      // Read file and calculate hash
       const arrayBuffer = await file.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
       
-      // Use ethers.utils for better compatibility
-      const hashBytes = ethers.keccak256(uint8Array);
+      // Convert to hex string and then hash
+      const hexString = ethers.hexlify(uint8Array);
+      const hashBytes = ethers.keccak256(hexString);
 
       const valid = await contract.verify(holderAddress, hashBytes);
       setIsValid(valid);
