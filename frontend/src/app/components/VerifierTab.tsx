@@ -138,7 +138,7 @@ export default function VerifierTab({ contractAddress, abi }: Props) {
 
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
           <p className="text-sm text-amber-800">
-            <span className="font-semibold">⚠️ Important:</span> Make sure you have the holder's consent before attempting to verify their credentials.
+            <span className="font-semibold">⚠️ Important:</span> Make sure you have the holder's consent before attempting to verify their credentials
           </p>
         </div>
       </div>
